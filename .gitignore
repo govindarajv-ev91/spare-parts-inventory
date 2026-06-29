@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Web build & env
+web/dist/
+web/.env
+
+# Android secrets (copy from gradle.properties.example)
+android/SparePartsInventory/gradle.properties
+
+# Android / Gradle
+android/SparePartsInventory/.gradle/
+android/SparePartsInventory/build/
+android/SparePartsInventory/app/build/
+android/SparePartsInventory/local.properties
+android/SparePartsInventory/.idea/
+android/SparePartsInventory/*.iml
+android/.idea/
+
+# OS & editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+*.swp

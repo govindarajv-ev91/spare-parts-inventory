@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Spare Parts</string>
+    <string name="app_title">Vehicle Spare Parts</string>
+    <string name="select_hub_subtitle">Select your HUB to view and use inventory</string>
+    <string name="select_hub_hint">— Select HUB —</string>
+    <string name="hub_name">HUB Name</string>
+    <string name="continue_to_inventory">View Inventory</string>
+    <string name="refresh">Refresh</string>
+    <string name="loading_hubs">Loading HUBs…</string>
+    <string name="hubs_loaded">%1$d HUB(s) available</string>
+    <string name="no_hubs_found">No HUBs found. Add stock from the web app first.</string>
+    <string name="please_select_hub">Please select a HUB</string>
+    <string name="search_hint">Search item code or name…</string>
+    <string name="no_items_in_hub">No items in this HUB</string>
+    <string name="no_search_results">No matching items</string>
+    <string name="deduct_stock">Use Spare Part</string>
+    <string name="item_code">Item Code</string>
+    <string name="description">Description</string>
+    <string name="available_qty">Available Qty</string>
+    <string name="qty_to_deduct">Qty to Use</string>
+    <string name="vehicle_number">Vehicle Number (min 10 characters)</string>
+    <string name="vehicle_hint">e.g. TN24PL5642</string>
+    <string name="vehicle_min_length">Vehicle number must be at least 10 characters</string>
+    <string name="vehicle_not_in_master">Vehicle number not registered in master list</string>
+    <string name="save">Save</string>
+    <string name="enter_qty">Enter quantity</string>
+    <string name="invalid_qty">Enter a valid quantity</string>
+    <string name="insufficient_stock">Only %1$d available</string>
+    <string name="enter_vehicle">Enter vehicle number</string>
+    <string name="saved_success">Saved! Remaining qty: %1$d</string>
+    <string name="error_generic">Something went wrong</string>
+</resources>
