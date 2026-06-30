@@ -3,6 +3,7 @@ package com.evinventory.spareparts
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.evinventory.spareparts.databinding.ActivityDeductBinding
@@ -24,6 +25,18 @@ class DeductActivity : AppCompatActivity() {
     private var hubName = ""
     private var availableQty = 0
 
+    private val scanPlateLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val plate = result.data?.getStringExtra(PlateScanActivity.EXTRA_VEHICLE)
+            if (!plate.isNullOrBlank()) {
+                binding.editVehicle.setText(plate)
+                binding.editVehicle.error = null
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDeductBinding.inflate(layoutInflater)
@@ -43,6 +56,9 @@ class DeductActivity : AppCompatActivity() {
         binding.textHub.text = hubName
 
         binding.buttonSave.setOnClickListener { saveDeduction() }
+        binding.buttonScanPlate.setOnClickListener {
+            scanPlateLauncher.launch(android.content.Intent(this, PlateScanActivity::class.java))
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {

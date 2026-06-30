@@ -30,4 +30,13 @@
     <string name="enter_vehicle">Enter vehicle number</string>
     <string name="saved_success">Saved! Remaining qty: %1$d</string>
     <string name="error_generic">Something went wrong</string>
+    <string name="scan_plate">Scan</string>
+    <string name="scan_plate_title">Scan Vehicle Plate</string>
+    <string name="scan_plate_hint">Point camera at the number plate inside the green frame</string>
+    <string name="scan_detected">Detected number</string>
+    <string name="scan_waiting">Scanning…</string>
+    <string name="scan_use_plate">Use This Number</string>
+    <string name="cancel">Cancel</string>
+    <string name="camera_permission_denied">Camera permission is required to scan plates</string>
+    <string name="camera_start_failed">Could not start camera</string>
 </resources>

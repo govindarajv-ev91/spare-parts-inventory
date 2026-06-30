@@ -108,15 +108,37 @@
             android:textStyle="bold"
             android:textSize="15sp" />
 
-        <EditText
-            android:id="@+id/editVehicle"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="52dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:background="@drawable/bg_input"
-            android:hint="@string/vehicle_hint"
-            android:inputType="textCapCharacters"
-            android:paddingHorizontal="16dp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/editVehicle"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="@string/vehicle_hint"
+                android:inputType="textCapCharacters"
+                android:paddingHorizontal="16dp" />
+
+            <Button
+                android:id="@+id/buttonScanPlate"
+                android:layout_width="wrap_content"
+                android:layout_height="52dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_button_primary"
+                android:minWidth="88dp"
+                android:paddingHorizontal="14dp"
+                android:text="@string/scan_plate"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <ProgressBar
             android:id="@+id/progressBar"
