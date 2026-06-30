@@ -24,7 +24,12 @@
     <string name="vehicle_min_length">Vehicle number must be at least 10 characters</string>
     <string name="vehicle_not_in_master">Vehicle number not registered in master list</string>
     <string name="save">Save</string>
-    <string name="enter_qty">Enter quantity</string>
+    <string name="enter_qty">Select quantity using + or −</string>
+    <string name="qty_increase">Increase quantity</string>
+    <string name="qty_decrease">Decrease quantity</string>
+    <string name="qty_max_reached">Maximum available quantity reached</string>
+    <string name="qty_min_reached">Minimum quantity is 1</string>
+    <string name="qty_of_available">%1$d of %2$d available</string>
     <string name="invalid_qty">Enter a valid quantity</string>
     <string name="insufficient_stock">Only %1$d available</string>
     <string name="enter_vehicle">Enter vehicle number</string>
@@ -32,11 +37,22 @@
     <string name="error_generic">Something went wrong</string>
     <string name="scan_plate">Scan</string>
     <string name="scan_plate_title">Scan Vehicle Plate</string>
-    <string name="scan_plate_hint">Point camera at the number plate inside the green frame</string>
+    <string name="scan_plate_hint">Point camera at the number plate inside the green frame and hold steady for a second</string>
     <string name="scan_detected">Detected number</string>
     <string name="scan_waiting">Scanning…</string>
     <string name="scan_use_plate">Use This Number</string>
     <string name="cancel">Cancel</string>
     <string name="camera_permission_denied">Camera permission is required to scan plates</string>
     <string name="camera_start_failed">Could not start camera</string>
+    <string name="confirm_hub_title">Confirm HUB</string>
+    <string name="confirm_hub_message">Open inventory for HUB:\n\n%1$s\n\nPlease confirm this is the correct HUB.</string>
+    <string name="confirm_save_title">Confirm Usage</string>
+    <string name="confirm_save_message">Use %1$d unit(s) of %2$s\nat HUB %3$s\nfor vehicle %4$s?</string>
+    <string name="confirm_save_qty_warning">Warning: You are using %1$d of %2$d available. Please double-check the quantity.</string>
+    <string name="confirm_yes">Yes, Confirm</string>
+    <string name="scan_item">Scan Barcode / QR</string>
+    <string name="scan_item_title">Scan Item Code</string>
+    <string name="scan_item_hint">Point camera at the item barcode or QR code</string>
+    <string name="scan_use_item">Open Use Spare Part</string>
+    <string name="item_not_found">Item not found in this HUB: %1$s</string>
 </resources>

@@ -12,26 +12,36 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
-import com.evinventory.spareparts.databinding.ActivityPlateScanBinding
+import com.evinventory.spareparts.databinding.ActivityItemBarcodeScanBinding
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.util.concurrent.Executors
 
-class PlateScanActivity : AppCompatActivity() {
+class ItemBarcodeScanActivity : AppCompatActivity() {
 
     companion object {
-        const val EXTRA_VEHICLE = "vehicle"
-        private const val STABLE_READS_REQUIRED = 3
+        const val EXTRA_ITEM_CODE = "item_code"
     }
 
-    private lateinit var binding: ActivityPlateScanBinding
+    private lateinit var binding: ActivityItemBarcodeScanBinding
     private val cameraExecutor = Executors.newSingleThreadExecutor()
-    private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    private var detectedPlate: String? = null
+    private val barcodeScanner = BarcodeScanning.getClient(
+        BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(
+                Barcode.FORMAT_QR_CODE,
+                Barcode.FORMAT_CODE_128,
+                Barcode.FORMAT_CODE_39,
+                Barcode.FORMAT_EAN_13,
+                Barcode.FORMAT_EAN_8,
+                Barcode.FORMAT_UPC_A,
+                Barcode.FORMAT_DATA_MATRIX
+            )
+            .build()
+    )
+    private var detectedCode: String? = null
     private var isProcessing = false
-    private var lastCandidate: String? = null
-    private var stableCount = 0
 
     private val requestCameraPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -45,14 +55,14 @@ class PlateScanActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityPlateScanBinding.inflate(layoutInflater)
+        binding = ActivityItemBarcodeScanBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         supportActionBar?.hide()
 
-        binding.buttonUsePlate.setOnClickListener {
-            detectedPlate?.let { plate ->
-                setResult(RESULT_OK, Intent().putExtra(EXTRA_VEHICLE, plate))
+        binding.buttonUseCode.setOnClickListener {
+            detectedCode?.let { code ->
+                setResult(RESULT_OK, Intent().putExtra(EXTRA_ITEM_CODE, code))
                 finish()
             }
         }
@@ -81,7 +91,7 @@ class PlateScanActivity : AppCompatActivity() {
                 .build()
 
             imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                if (isProcessing) {
+                if (isProcessing || detectedCode != null) {
                     imageProxy.close()
                     return@setAnalyzer
                 }
@@ -98,26 +108,16 @@ class PlateScanActivity : AppCompatActivity() {
                     imageProxy.imageInfo.rotationDegrees
                 )
 
-                val rotation = imageProxy.imageInfo.rotationDegrees
-                val imageWidth = if (rotation == 90 || rotation == 270) mediaImage.height else mediaImage.width
-                val imageHeight = if (rotation == 90 || rotation == 270) mediaImage.width else mediaImage.height
-
-                textRecognizer.process(inputImage)
-                    .addOnSuccessListener { visionText ->
-                        PlateTextExtractor.extractFromVisionText(
-                            visionText,
-                            imageWidth,
-                            imageHeight
-                        )?.let { plate ->
-                            if (plate == lastCandidate) {
-                                stableCount++
-                            } else {
-                                lastCandidate = plate
-                                stableCount = 1
-                            }
-                            if (stableCount >= STABLE_READS_REQUIRED && plate != detectedPlate) {
-                                detectedPlate = plate
-                                runOnUiThread { showDetectedPlate(plate) }
+                barcodeScanner.process(inputImage)
+                    .addOnSuccessListener { barcodes ->
+                        val code = barcodes
+                            .mapNotNull { it.rawValue?.trim() }
+                            .firstOrNull { it.isNotEmpty() }
+                        if (code != null && code != detectedCode) {
+                            detectedCode = code
+                            runOnUiThread {
+                                setResult(RESULT_OK, Intent().putExtra(EXTRA_ITEM_CODE, code))
+                                finish()
                             }
                         }
                     }
@@ -142,14 +142,9 @@ class PlateScanActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun showDetectedPlate(plate: String) {
-        binding.textDetectedPlate.text = plate
-        binding.buttonUsePlate.isEnabled = true
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
-        textRecognizer.close()
+        barcodeScanner.close()
     }
 }

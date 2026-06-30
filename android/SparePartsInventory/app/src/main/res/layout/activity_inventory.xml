@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:background="@color/primary"
         android:orientation="vertical"
-        android:paddingBottom="12dp">
+        android:paddingBottom="8dp">
 
         <androidx.appcompat.widget.SearchView
             android:id="@+id/searchView"
@@ -21,6 +21,19 @@
             android:iconifiedByDefault="false"
             android:queryHint="@string/search_hint"
             android:theme="@style/ThemeOverlay.AppCompat.Light" />
+
+        <Button
+            android:id="@+id/buttonScanItem"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/bg_button_primary"
+            android:text="@string/scan_item"
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <Button

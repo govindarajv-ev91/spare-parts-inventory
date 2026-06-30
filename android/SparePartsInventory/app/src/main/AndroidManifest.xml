@@ -18,6 +18,11 @@
         android:theme="@style/Theme.SparePartsInventory"
         android:usesCleartextTraffic="false">
         <activity
+            android:name=".ItemBarcodeScanActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:parentActivityName=".InventoryActivity" />
+        <activity
             android:name=".PlateScanActivity"
             android:exported="false"
             android:screenOrientation="portrait"

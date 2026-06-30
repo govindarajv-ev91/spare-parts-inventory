@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.evinventory.spareparts.databinding.ActivityMainBinding
@@ -29,12 +30,23 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, R.string.please_select_hub, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            startActivity(Intent(this, InventoryActivity::class.java).apply {
-                putExtra(InventoryActivity.EXTRA_HUB_NAME, selected)
-            })
+            confirmHubAndContinue(selected)
         }
 
         binding.buttonRefresh.setOnClickListener { loadHubs() }
+    }
+
+    private fun confirmHubAndContinue(hubName: String) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.confirm_hub_title)
+            .setMessage(getString(R.string.confirm_hub_message, hubName))
+            .setPositiveButton(R.string.confirm_yes) { _, _ ->
+                startActivity(Intent(this, InventoryActivity::class.java).apply {
+                    putExtra(InventoryActivity.EXTRA_HUB_NAME, hubName)
+                })
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun loadHubs() {

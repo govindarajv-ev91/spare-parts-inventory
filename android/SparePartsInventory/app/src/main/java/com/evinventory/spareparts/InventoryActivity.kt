@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.lifecycle.lifecycleScope
@@ -24,6 +26,18 @@ class InventoryActivity : AppCompatActivity() {
     private lateinit var adapter: InventoryAdapter
     private var hubName: String = ""
     private var allItems: List<InventoryItem> = emptyList()
+    private var itemByCode: Map<String, InventoryItem> = emptyMap()
+
+    private val scanItemLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val code = result.data?.getStringExtra(ItemBarcodeScanActivity.EXTRA_ITEM_CODE)
+            if (!code.isNullOrBlank()) {
+                openItemByCode(code)
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,15 +48,7 @@ class InventoryActivity : AppCompatActivity() {
         supportActionBar?.title = hubName
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        adapter = InventoryAdapter { item ->
-            startActivity(Intent(this, DeductActivity::class.java).apply {
-                putExtra(DeductActivity.EXTRA_ITEM_ID, item.id)
-                putExtra(DeductActivity.EXTRA_ITEM_CODE, item.itemCode)
-                putExtra(DeductActivity.EXTRA_ITEM_DESC, item.itemDescription)
-                putExtra(DeductActivity.EXTRA_QTY, item.qty)
-                putExtra(DeductActivity.EXTRA_HUB_NAME, hubName)
-            })
-        }
+        adapter = InventoryAdapter { item -> openDeductScreen(item) }
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
@@ -54,6 +60,10 @@ class InventoryActivity : AppCompatActivity() {
                 return true
             }
         })
+
+        binding.buttonScanItem.setOnClickListener {
+            scanItemLauncher.launch(Intent(this, ItemBarcodeScanActivity::class.java))
+        }
 
         binding.buttonRefresh.setOnClickListener { loadInventory() }
         loadInventory()
@@ -79,6 +89,7 @@ class InventoryActivity : AppCompatActivity() {
 
             result.onSuccess { items ->
                 allItems = items
+                itemByCode = items.associateBy { it.itemCode.uppercase().trim() }
                 filterList(binding.searchView.query?.toString().orEmpty())
             }.onFailure { e ->
                 Toast.makeText(this@InventoryActivity, e.message, Toast.LENGTH_LONG).show()
@@ -105,5 +116,32 @@ class InventoryActivity : AppCompatActivity() {
         } else {
             getString(R.string.no_search_results)
         }
+    }
+
+    private fun openItemByCode(code: String) {
+        val normalized = code.uppercase().trim()
+        val item = itemByCode[normalized]
+            ?: allItems.firstOrNull { it.itemCode.equals(code, ignoreCase = true) }
+
+        if (item == null) {
+            Toast.makeText(
+                this,
+                getString(R.string.item_not_found, code),
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
+
+        openDeductScreen(item)
+    }
+
+    private fun openDeductScreen(item: InventoryItem) {
+        startActivity(Intent(this, DeductActivity::class.java).apply {
+            putExtra(DeductActivity.EXTRA_ITEM_ID, item.id)
+            putExtra(DeductActivity.EXTRA_ITEM_CODE, item.itemCode)
+            putExtra(DeductActivity.EXTRA_ITEM_DESC, item.itemDescription)
+            putExtra(DeductActivity.EXTRA_QTY, item.qty)
+            putExtra(DeductActivity.EXTRA_HUB_NAME, hubName)
+        })
     }
 }
