@@ -3,6 +3,7 @@ import './Modal.css'
 
 export default function AddCityHubModal({ type, cities, selectedCityId, onClose, onSaveCity, onSaveHub }) {
   const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
   const [cityId, setCityId] = useState(selectedCityId || '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -20,11 +21,15 @@ export default function AddCityHubModal({ type, cities, selectedCityId, onClose,
       setError('Please select a city')
       return
     }
+    if (!isCity && !password.trim()) {
+      setError('HUB login password is required')
+      return
+    }
 
     setSaving(true)
     const err = isCity
       ? await onSaveCity(name.trim())
-      : await onSaveHub(cityId, name.trim())
+      : await onSaveHub(cityId, name.trim(), password.trim())
     setSaving(false)
 
     if (err) setError(err)
@@ -38,7 +43,7 @@ export default function AddCityHubModal({ type, cities, selectedCityId, onClose,
         <p className="modal-subtext">
           {isCity
             ? 'One city can have multiple HUBs (e.g. Hub A, Hub B, Hub C).'
-            : 'Add a HUB under the selected city.'}
+            : 'Add a HUB under the selected city. Password is used for HUB web login.'}
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -57,7 +62,7 @@ export default function AddCityHubModal({ type, cities, selectedCityId, onClose,
           )}
 
           <label className="modal-field">
-            <span>{isCity ? 'City Name' : 'HUB Name'}</span>
+            <span>{isCity ? 'City Name' : 'HUB Name (login username)'}</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -66,6 +71,19 @@ export default function AddCityHubModal({ type, cities, selectedCityId, onClose,
               required
             />
           </label>
+
+          {!isCity && (
+            <label className="modal-field">
+              <span>HUB Password</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Login password for this HUB"
+                required
+              />
+            </label>
+          )}
 
           <div className="modal-actions">
             <button type="button" className="btn-secondary" onClick={onClose}>Cancel</button>

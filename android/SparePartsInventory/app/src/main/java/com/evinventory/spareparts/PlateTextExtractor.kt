@@ -3,6 +3,7 @@ package com.evinventory.spareparts
 import android.graphics.Rect
 import com.google.mlkit.vision.text.Text
 import kotlin.math.abs
+import kotlin.math.max
 
 object PlateTextExtractor {
 
@@ -19,30 +20,31 @@ object PlateTextExtractor {
         imageWidth: Int = 0,
         imageHeight: Int = 0
     ): String? {
-        val candidates = linkedSetOf<String>()
+        val rawCandidates = linkedSetOf<String>()
 
-        tryCombineLines(visionText, imageWidth, imageHeight)?.let { candidates.add(it) }
+        tryCombineLines(visionText, imageWidth, imageHeight)?.let { rawCandidates.add(it) }
 
         for (block in visionText.textBlocks) {
             if (!isInScanRegion(block.boundingBox, imageWidth, imageHeight)) continue
-            collectTexts(block.text)?.let { candidates.add(it) }
+            collectTexts(block.text)?.let { rawCandidates.add(it) }
             for (line in block.lines) {
                 if (!isInScanRegion(line.boundingBox, imageWidth, imageHeight)) continue
-                collectTexts(line.text)?.let { candidates.add(it) }
+                collectTexts(line.text)?.let { rawCandidates.add(it) }
                 for (element in line.elements) {
                     if (!isInScanRegion(element.boundingBox, imageWidth, imageHeight)) continue
-                    collectTexts(element.text)?.let { candidates.add(it) }
+                    collectTexts(element.text)?.let { rawCandidates.add(it) }
                 }
             }
         }
 
-        if (candidates.isEmpty()) {
-            collectTexts(visionText.text)?.let { candidates.add(it) }
+        if (rawCandidates.isEmpty()) {
+            collectTexts(visionText.text)?.let { rawCandidates.add(it) }
         }
 
-        return candidates
-            .mapNotNull { extractPlate(it) }
-            .maxByOrNull { scorePlate(it) }
+        return rawCandidates
+            .mapNotNull { raw -> extractPlate(raw)?.let { plate -> plate to raw } }
+            .maxByOrNull { (plate, raw) -> scorePlate(plate, compact(raw)) }
+            ?.first
     }
 
     private fun tryCombineLines(
@@ -60,8 +62,13 @@ object PlateTextExtractor {
         for (i in 0 until lines.size - 1) {
             val top = lines[i]
             val bottom = lines[i + 1]
-            extractPlate(top + bottom)?.let { return it }
-            extractPlate(top + bottom.takeLast(minOf(6, bottom.length)))?.let { return it }
+            listOf(
+                top + bottom,
+                top + bottom.takeLast(minOf(6, bottom.length)),
+                top.dropLast(1) + bottom
+            ).forEach { combined ->
+                extractPlate(combined)?.let { return combined }
+            }
         }
         return null
     }
@@ -80,37 +87,60 @@ object PlateTextExtractor {
 
         val embedded = Regex("""[A-Z]{2}[A-Z0-9]{7,11}""")
         for (match in embedded.findAll(compact)) {
-            correctToPlate(match.value)?.let { return it }
+            correctToPlate(match.value, compact)?.let { return it }
         }
         return null
     }
 
-    private fun correctToPlate(compact: String): String? {
-        val candidates = linkedSetOf<String>()
+    private fun correctToPlate(compact: String, rawSource: String = compact): String? {
+        val scores = linkedMapOf<String, Int>()
 
         for (len in listOf(11, 10, 12, 9)) {
             if (compact.length < len) continue
-            collectValidPlates(compact.take(len), candidates)
+            val slice = compact.take(len)
+            val rawSlice = rawSource.take(len)
+            collectValidPlates(slice, rawSlice, scores)
         }
 
-        return candidates.maxByOrNull { scorePlate(it) }
+        return scores.maxByOrNull { it.value }?.key
     }
 
-    private fun collectValidPlates(slice: String, out: MutableSet<String>) {
-        applyPositionalCorrection(slice)?.let { out.add(it) }
-        for (variant in generateCorrectionVariants(slice)) {
-            applyPositionalCorrection(variant)?.let { out.add(it) }
+    private fun collectValidPlates(slice: String, rawSlice: String, scores: MutableMap<String, Int>) {
+        for (variant in allCorrectionVariants(slice)) {
+            buildPlate(variant)?.let { plate ->
+                val score = scorePlate(plate, rawSlice)
+                scores[plate] = max(scores[plate] ?: 0, score)
+            }
         }
     }
 
-    private fun applyPositionalCorrection(raw: String): String? {
-        val groups = splitPlateGroups(raw) ?: return null
-        val state = groups.state.map { fixLetter(it) }.joinToString("")
-        val district = districtCandidates(groups.district).firstOrNull()
-            ?: groups.district.map { fixDigit(it) }.joinToString("")
-        val series = groups.series.map { fixLetter(it) }.joinToString("")
-        val number = groups.number.map { fixDigit(it) }.joinToString("")
-        val plate = state + district + series + number
+    private fun allCorrectionVariants(slice: String): List<PlateGroups> {
+        val groups = splitPlateGroups(slice) ?: return emptyList()
+        val results = mutableListOf<PlateGroups>()
+
+        val districtOptions = districtCandidates(groups.district)
+        val seriesOptions = seriesCandidates(groups.series)
+        val numberOptions = numberCandidates(groups.number)
+
+        for (district in districtOptions) {
+            for (series in seriesOptions) {
+                for (number in numberOptions) {
+                    results.add(
+                        PlateGroups(
+                            state = groups.state.map { fixLetter(it) }.joinToString(""),
+                            district = district,
+                            series = series,
+                            number = number
+                        )
+                    )
+                }
+            }
+        }
+        return results.distinct()
+    }
+
+    private fun buildPlate(groups: PlateGroups): String? {
+        val plate = groups.state + groups.district + groups.series + groups.number
         return plate.takeIf { isValidPlate(it) }
     }
 
@@ -143,27 +173,25 @@ object PlateTextExtractor {
         )
     }
 
-    private fun generateCorrectionVariants(raw: String): List<String> {
-        val groups = splitPlateGroups(raw) ?: return emptyList()
-        val variants = mutableListOf<String>()
+    private fun seriesCandidates(series: String): List<String> {
+        val perChar = series.map { letterAlternates(it) }
+        return cartesianJoin(perChar).distinct()
+    }
 
-        val districtOptions = districtCandidates(groups.district)
-        val numberAlts = groups.number.map { digitAlternates(it) }
+    private fun numberCandidates(number: String): List<String> {
+        val perChar = number.map { digitAlternates(it) }
+        return cartesianJoin(perChar).distinct()
+    }
 
-        for (district in districtOptions) {
-            for (n0 in numberAlts[0]) {
-                for (n1 in numberAlts[1]) {
-                    for (n2 in numberAlts[2]) {
-                        for (n3 in numberAlts[3]) {
-                            variants.add(
-                                groups.state + district + groups.series + "$n0$n1$n2$n3"
-                            )
-                        }
-                    }
-                }
+    private fun cartesianJoin(options: List<List<Char>>): List<String> {
+        if (options.isEmpty()) return listOf("")
+        var results = listOf("")
+        for (opts in options) {
+            results = results.flatMap { prefix ->
+                opts.map { ch -> prefix + ch }
             }
         }
-        return variants.distinct()
+        return results
     }
 
     private fun districtCandidates(raw: String): List<String> {
@@ -182,24 +210,18 @@ object PlateTextExtractor {
         )
         knownMisreads[upper]?.let { return it }
 
-        val alts = raw.map { digitAlternates(it) }
-        val results = mutableListOf<String>()
-        for (d0 in alts[0]) {
-            for (d1 in alts[1]) {
-                results.add("$d0$d1")
-            }
-        }
-        return results.distinct()
+        return cartesianJoin(raw.map { digitAlternates(it) }).distinct()
     }
 
     private fun fixLetter(c: Char): Char = when (c) {
         '0', 'O', 'Q', 'D' -> 'O'
-        '1', 'I', 'L', 'T', '|' -> 'I'
+        '1', 'L', '|' -> 'I'
+        'I' -> 'I'
+        'T' -> 'T'
         '5', 'S' -> 'S'
         '8', 'B' -> 'B'
         '6', 'G' -> 'G'
         '2', 'Z' -> 'Z'
-        '4', 'A' -> 'A'
         in 'A'..'Z' -> c
         in '0'..'9' -> when (c) {
             '0' -> 'O'
@@ -209,6 +231,18 @@ object PlateTextExtractor {
             else -> c
         }
         else -> c
+    }
+
+    private fun letterAlternates(c: Char): List<Char> = when (c) {
+        'I', '1', 'L', '|' -> listOf('I', 'T')
+        'T' -> listOf('T', 'I')
+        'O', '0', 'Q', 'D' -> listOf('O')
+        'S', '5' -> listOf('S')
+        'B', '8' -> listOf('B')
+        'G', '6' -> listOf('G')
+        'Z', '2' -> listOf('Z')
+        in 'A'..'Z' -> listOf(c)
+        else -> listOf(fixLetter(c))
     }
 
     private fun fixDigit(c: Char): Char = when (c) {
@@ -241,7 +275,7 @@ object PlateTextExtractor {
         return true
     }
 
-    private fun scorePlate(plate: String): Int {
+    private fun scorePlate(plate: String, rawSlice: String = ""): Int {
         var score = 0
         if (!isValidPlate(plate)) return score
         score += 100
@@ -249,6 +283,25 @@ object PlateTextExtractor {
         if (INDIAN_STATE_CODES.contains(plate.take(2))) score += 20
         val district = plate.substring(2, 4).toIntOrNull() ?: 0
         if (district in 1..99) score += 5
+
+        if (rawSlice.length == plate.length) {
+            val plateSeries = plate.substring(4, plate.length - 4)
+            val rawSeries = rawSlice.substring(4, plate.length - 4)
+            for (i in plateSeries.indices) {
+                if (i >= rawSeries.length) continue
+                when {
+                    plateSeries[i] == rawSeries[i] -> score += 3
+                    rawSeries[i] == 'I' && plateSeries[i] == 'T' -> score += 8
+                    rawSeries[i] == 'T' && plateSeries[i] == 'I' -> score += 2
+                    rawSeries[i] == 'O' && plateSeries[i] == '0' -> score += 6
+                    rawSeries[i] == 'U' && plateSeries[i] == '0' -> score += 6
+                    rawSeries[i] == 'S' && plateSeries[i] == '9' -> score += 6
+                }
+            }
+            for (i in plate.indices) {
+                if (i < rawSlice.length && plate[i] == rawSlice[i]) score += 1
+            }
+        }
         return score
     }
 

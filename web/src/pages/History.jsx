@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../supabaseClient'
+import { getSession, isHubUser } from '../auth'
 import { exportHistoryCsv, exportHistoryExcel } from '../utils/exportHistory'
 import './Pages.css'
 
@@ -13,19 +14,27 @@ function formatDate(iso) {
 }
 
 export default function History() {
+  const session = getSession()
+  const hubUser = isHubUser()
   const [records, setRecords] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filterHub, setFilterHub] = useState('')
+  const [filterHub, setFilterHub] = useState(hubUser ? session?.hubName || '' : '')
   const [search, setSearch] = useState('')
 
   const fetchHistory = async () => {
     setLoading(true)
     setError('')
-    const { data, error: err } = await supabase
+    let query = supabase
       .from('usage_history')
       .select('*')
       .order('created_at', { ascending: false })
+
+    if (hubUser && session?.hubName) {
+      query = query.eq('hub_name', session.hubName)
+    }
+
+    const { data, error: err } = await query
 
     if (err) {
       setError(err.message)
@@ -105,12 +114,14 @@ export default function History() {
               onChange={(e) => setSearch(e.target.value)}
               className="search-input"
             />
-            <select value={filterHub} onChange={(e) => setFilterHub(e.target.value)}>
-              <option value="">All HUBs</option>
-              {hubs.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            {!hubUser && (
+              <select value={filterHub} onChange={(e) => setFilterHub(e.target.value)}>
+                <option value="">All HUBs</option>
+                {hubs.map((h) => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               className="btn-export"

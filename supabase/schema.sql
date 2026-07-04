@@ -9,10 +9,12 @@ CREATE TABLE IF NOT EXISTS cities (
 );
 
 -- Hubs (belong to a city — e.g. Colombo → Hub A, Hub B, Hub C)
+-- password = HUB web login password (username = hub name)
 CREATE TABLE IF NOT EXISTS hubs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   city_id UUID NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  password TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (city_id, name)
 );

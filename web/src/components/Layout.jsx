@@ -1,12 +1,19 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { setAuthenticated } from '../App'
+import { clearSession, getSession, isAdmin } from '../auth'
 import { useIdleLogout } from '../hooks/useIdleLogout'
 import './Layout.css'
 
-const NAV = [
+const ADMIN_NAV = [
   { to: '/', label: 'Stock', icon: '📦', end: true },
+  { to: '/approvals', label: 'Approvals', icon: '✅' },
+  { to: '/documents', label: 'Documents', icon: '📎' },
   { to: '/vehicles', label: 'Vehicle Master', icon: '🚗' },
+  { to: '/history', label: 'Usage History', icon: '📋' },
+]
+
+const HUB_NAV = [
+  { to: '/', label: 'Stock', icon: '📦', end: true },
   { to: '/history', label: 'Usage History', icon: '📋' },
 ]
 
@@ -14,20 +21,28 @@ const PAGE_TITLES = {
   '/': 'Stock Management',
   '/vehicles': 'Vehicle Master',
   '/history': 'Usage History',
+  '/approvals': 'Stock Approvals',
+  '/documents': 'Uploaded Documents',
 }
 
 export default function Layout() {
   const navigate = useNavigate()
   const location = useLocation()
+  const session = getSession()
+  const admin = isAdmin()
+  const nav = useMemo(() => (admin ? ADMIN_NAV : HUB_NAV), [admin])
   const pageTitle = PAGE_TITLES[location.pathname] || 'Dashboard'
+  const roleLabel = admin
+    ? 'Admin Dashboard'
+    : `HUB: ${session?.hubName || session?.displayName || 'User'}`
 
   const handleLogout = useCallback(() => {
-    setAuthenticated(false)
+    clearSession()
     navigate('/login')
   }, [navigate])
 
   useIdleLogout(() => {
-    setAuthenticated(false)
+    clearSession()
     navigate('/login', { replace: true, state: { reason: 'idle' } })
   })
 
@@ -43,7 +58,7 @@ export default function Layout() {
         </div>
 
         <nav className="sidebar-nav">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -65,7 +80,7 @@ export default function Layout() {
       <div className="dash-main-wrap">
         <header className="dash-topbar">
           <div>
-            <p className="topbar-label">Admin Dashboard</p>
+            <p className="topbar-label">{roleLabel}</p>
             <h1>{pageTitle}</h1>
           </div>
           <div className="topbar-badge">Live Sync</div>

@@ -26,7 +26,7 @@ function parseHeaderRow(headerRow) {
   }
 
   if (idx.code === -1 || idx.desc === -1 || idx.qty === -1) {
-    throw new Error('File must have columns: Item Code, Item Description, Qty, City, HUB Name')
+    throw new Error('File must have columns: Item Code, Item Description, Qty')
   }
 
   return idx
@@ -69,7 +69,23 @@ export function parseExcel(buffer) {
   )
 }
 
-export function downloadExcelTemplate() {
+/** Hub users: Item Code, Description, Qty only. Admin: includes City + HUB Name. */
+export function downloadExcelTemplate({ forHub = false } = {}) {
+  if (forHub) {
+    const headers = ['Item Code', 'Item Description', 'Qty']
+    const sampleRows = [
+      ['SP001', 'Brake Pad Set', 50],
+      ['SP002', 'Oil Filter', 120],
+      ['SP003', 'Spark Plug', 200],
+    ]
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 8 }]
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Stock Upload')
+    XLSX.writeFile(wb, 'spare-parts-hub-upload-template.xlsx')
+    return
+  }
+
   const headers = ['Item Code', 'Item Description', 'Qty', 'City', 'HUB Name']
   const sampleRows = [
     ['SP001', 'Brake Pad Set', 50, 'Colombo', 'Hub A'],
