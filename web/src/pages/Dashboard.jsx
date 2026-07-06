@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../supabaseClient'
 import { getSession, isAdmin, isHubUser } from '../auth'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
+import ConfirmModal from '../components/ConfirmModal'
 import AddCityHubModal from '../components/AddCityHubModal'
 import { parseCsv, parseExcel, downloadExcelTemplate } from '../utils/uploadParser'
 import { exportInventoryCsv, exportInventoryExcel } from '../utils/exportInventory'
@@ -37,6 +38,8 @@ export default function Dashboard() {
   const [deleteItem, setDeleteItem] = useState(null)
   const [addModal, setAddModal] = useState(null)
   const [invoiceFile, setInvoiceFile] = useState(null)
+  const [saveConfirm, setSaveConfirm] = useState(null)
+  const [uploadConfirm, setUploadConfirm] = useState(null)
 
   const fetchCities = async () => {
     const { data } = await supabase.from('cities').select('*').order('name')
@@ -218,7 +221,7 @@ export default function Dashboard() {
     return req.id
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
@@ -246,6 +249,20 @@ export default function Dashboard() {
       return
     }
 
+    setSaveConfirm({
+      item_code: form.item_code.trim(),
+      item_description: form.item_description.trim(),
+      qty,
+      cityName,
+      hubName,
+      hubId,
+    })
+  }
+
+  const performSave = async () => {
+    if (!saveConfirm) return
+    const { item_code, item_description, qty, cityName, hubName, hubId } = saveConfirm
+
     setSaving(true)
     try {
       if (hubUser) {
@@ -256,8 +273,8 @@ export default function Dashboard() {
           hubId,
           items: [
             {
-              item_code: form.item_code.trim(),
-              item_description: form.item_description.trim(),
+              item_code,
+              item_description,
               qty,
               city: cityName,
               hub_name: hubName,
@@ -273,8 +290,8 @@ export default function Dashboard() {
         fetchMyRequests()
       } else {
         const { error: err } = await saveStockDirect(
-          form.item_code.trim(),
-          form.item_description.trim(),
+          item_code,
+          item_description,
           qty,
           cityName,
           hubName
@@ -284,26 +301,33 @@ export default function Dashboard() {
         setForm(emptyForm)
         fetchItems()
       }
+      setSaveConfirm(null)
     } catch (ex) {
       setError(ex.message || 'Failed to save')
     }
     setSaving(false)
   }
 
-  const handleUpload = async (e) => {
+  const handleUpload = (e) => {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
     setError('')
     setSuccess('')
 
     if (hubUser && !invoiceFile) {
       setError('Please attach invoice / document copy before bulk upload')
-      e.target.value = ''
       return
     }
 
-    setUploading(true)
+    setUploadConfirm({ file })
+  }
 
+  const performUpload = async () => {
+    if (!uploadConfirm?.file) return
+    const file = uploadConfirm.file
+
+    setUploading(true)
     try {
       const ext = file.name.split('.').pop()?.toLowerCase()
       let rows = []
@@ -386,11 +410,11 @@ export default function Dashboard() {
         setSuccess(`Upload complete: ${ok} saved, ${fail} skipped`)
         fetchItems()
       }
+      setUploadConfirm(null)
     } catch (ex) {
       setError(ex.message)
     }
     setUploading(false)
-    e.target.value = ''
   }
 
   const handleSaveCity = async (name) => {
@@ -656,17 +680,27 @@ export default function Dashboard() {
                   <th>Items</th>
                   <th>Invoice</th>
                   <th>Status</th>
+                  <th>Remark</th>
                 </tr>
               </thead>
               <tbody>
                 {myRequests.map((r) => (
-                  <tr key={r.id}>
+                  <tr key={r.id} className={r.status === 'rejected' ? 'row-rejected' : ''}>
                     <td className="nowrap">{new Date(r.created_at).toLocaleString()}</td>
                     <td>{r.request_type}</td>
                     <td>{r.stock_request_items?.length || 0}</td>
                     <td>{r.invoice_name || '—'}</td>
                     <td>
                       <span className={`status-badge status-${r.status}`}>{r.status}</span>
+                    </td>
+                    <td>
+                      {r.status === 'rejected' && r.reject_reason ? (
+                        <span className="reject-remark">{r.reject_reason}</span>
+                      ) : r.status === 'rejected' ? (
+                        <span className="reject-remark muted">No remark provided</span>
+                      ) : (
+                        '—'
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -773,6 +807,54 @@ export default function Dashboard() {
           onClose={() => setAddModal(null)}
           onSaveCity={handleSaveCity}
           onSaveHub={handleSaveHub}
+        />
+      )}
+
+      {saveConfirm && (
+        <ConfirmModal
+          title={hubUser ? 'Submit for Approval?' : 'Save Stock?'}
+          message={
+            hubUser
+              ? 'This stock entry will be sent to Admin for approval. Inventory will update only after approval.'
+              : 'Are you sure you want to save this stock to inventory?'
+          }
+          confirmLabel={hubUser ? 'Yes, Submit' : 'Yes, Save Stock'}
+          onClose={() => setSaveConfirm(null)}
+          onConfirm={performSave}
+          details={
+            <>
+              <strong>{saveConfirm.item_description}</strong>
+              <span>Item Code: {saveConfirm.item_code}</span>
+              <span>Qty: {saveConfirm.qty}</span>
+              <span>HUB: {saveConfirm.hubName} · {saveConfirm.cityName}</span>
+            </>
+          }
+        />
+      )}
+
+      {uploadConfirm && (
+        <ConfirmModal
+          title={hubUser ? 'Submit Upload for Approval?' : 'Upload Stock File?'}
+          message={
+            hubUser
+              ? 'Upload this file for Admin approval? Stock will load only after approval.'
+              : 'Are you sure you want to upload and save stock from this file?'
+          }
+          confirmLabel={hubUser ? 'Yes, Submit Upload' : 'Yes, Upload'}
+          onClose={() => setUploadConfirm(null)}
+          onConfirm={performUpload}
+          details={
+            <>
+              <strong>{uploadConfirm.file.name}</strong>
+              <span>File type: {uploadConfirm.file.name.split('.').pop()?.toUpperCase()}</span>
+              {hubUser && invoiceFile && (
+                <span>Invoice: {invoiceFile.name}</span>
+              )}
+              {hubUser && (
+                <span>HUB: {session?.hubName}</span>
+              )}
+            </>
+          }
         />
       )}
     </div>

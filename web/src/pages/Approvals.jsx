@@ -1,5 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { supabase } from '../supabaseClient'
+import ConfirmModal from '../components/ConfirmModal'
 import './Pages.css'
 
 function formatDate(iso) {
@@ -18,6 +19,7 @@ export default function Approvals() {
   const [filter, setFilter] = useState('pending')
   const [busyId, setBusyId] = useState(null)
   const [expandedId, setExpandedId] = useState(null)
+  const [approveTarget, setApproveTarget] = useState(null)
 
   const fetchRequests = async () => {
     setLoading(true)
@@ -51,7 +53,9 @@ export default function Approvals() {
     return data?.publicUrl || null
   }
 
-  const handleApprove = async (id) => {
+  const handleApprove = async () => {
+    if (!approveTarget) return
+    const id = approveTarget.id
     setBusyId(id)
     setError('')
     setSuccess('')
@@ -63,6 +67,7 @@ export default function Approvals() {
       setError(err.message)
     } else {
       setSuccess('Request approved. Stock has been loaded into inventory.')
+      setApproveTarget(null)
       fetchRequests()
     }
   }
@@ -183,7 +188,7 @@ export default function Approvals() {
                                 type="button"
                                 className="btn-primary"
                                 disabled={busyId === r.id}
-                                onClick={() => handleApprove(r.id)}
+                                onClick={() => setApproveTarget(r)}
                               >
                                 Approve
                               </button>
@@ -238,6 +243,34 @@ export default function Approvals() {
           </div>
         )}
       </section>
+
+      {approveTarget && (
+        <ConfirmModal
+          title="Approve Stock Request?"
+          message="This will load the requested stock into inventory. Please confirm you have verified the invoice and item details."
+          confirmLabel="Yes, Approve"
+          onClose={() => setApproveTarget(null)}
+          onConfirm={handleApprove}
+          details={
+            <>
+              <strong>{approveTarget.hub_name}</strong>
+              <span>City: {approveTarget.city}</span>
+              <span>Type: {approveTarget.request_type}</span>
+              <span>Items: {approveTarget.stock_request_items?.length || 0}</span>
+              <span>
+                Total Qty:{' '}
+                {(approveTarget.stock_request_items || []).reduce(
+                  (sum, row) => sum + (Number(row.qty) || 0),
+                  0
+                )}
+              </span>
+              {approveTarget.invoice_name && (
+                <span>Invoice: {approveTarget.invoice_name}</span>
+              )}
+            </>
+          }
+        />
+      )}
     </div>
   )
 }

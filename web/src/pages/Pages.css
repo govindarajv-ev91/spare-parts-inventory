@@ -488,8 +488,21 @@
   background: var(--bg);
 }
 
-.expand-row td {
-  background: var(--surface-hover);
+.reject-remark {
+  display: block;
+  max-width: 280px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.data-table tr.row-rejected {
+  background: rgba(239, 68, 68, 0.06);
+}
+
+.data-table tr.row-rejected:hover {
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .stock-form input:disabled {
