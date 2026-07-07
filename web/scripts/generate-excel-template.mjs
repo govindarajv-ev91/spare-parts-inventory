@@ -7,11 +7,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const outDir = join(__dirname, '../public')
 mkdirSync(outDir, { recursive: true })
 
-const headers = ['Item Code', 'Item Description', 'Qty', 'City', 'HUB Name']
+const headers = ['Item Code', 'Item Description', 'OEM Name', 'Qty', 'City', 'HUB Name']
 const sampleRows = [
-  ['SP001', 'Brake Pad Set', 50, 'Colombo', 'Hub A'],
-  ['SP002', 'Oil Filter', 120, 'Colombo', 'Hub B'],
-  ['SP003', 'Spark Plug', 200, 'Kandy', 'Hub A'],
+  ['SP001', 'Brake Pad Set', 'MOTOVOLT', 50, 'Colombo', 'Hub A'],
+  ['SP002', 'Oil Filter', 'ATHER', 120, 'Colombo', 'Hub B'],
+  ['SP003', 'Spark Plug', 'OLA', 200, 'Kandy', 'Hub A'],
 ]
 
 const instructions = [
@@ -37,6 +37,7 @@ const ws = XLSX.utils.aoa_to_sheet(sheetData)
 ws['!cols'] = [
   { wch: 14 },
   { wch: 28 },
+  { wch: 16 },
   { wch: 8 },
   { wch: 14 },
   { wch: 14 },

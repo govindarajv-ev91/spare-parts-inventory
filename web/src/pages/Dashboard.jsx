@@ -12,6 +12,7 @@ import '../components/Modal.css'
 const emptyForm = {
   item_code: '',
   item_description: '',
+  oem_name: '',
   qty: '',
   city_id: '',
   hub_id: '',
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [filterHub, setFilterHub] = useState(hubUser ? session?.hubName || '' : '')
+  const [filterOem, setFilterOem] = useState('')
   const [search, setSearch] = useState('')
   const [deleteItem, setDeleteItem] = useState(null)
   const [addModal, setAddModal] = useState(null)
@@ -117,15 +119,18 @@ export default function Dashboard() {
   const selectedHub = hubs.find((h) => h.id === form.hub_id)
 
   const allHubNames = [...new Set(items.map((i) => i.hub_name))].sort()
+  const allOemNames = [...new Set(items.map((i) => i.oem_name).filter(Boolean))].sort()
 
   const filtered = items.filter((item) => {
     const matchHub = !filterHub || item.hub_name === filterHub
+    const matchOem = !filterOem || item.oem_name === filterOem
     const q = search.toLowerCase()
     const matchSearch =
       !q ||
       item.item_code.toLowerCase().includes(q) ||
-      item.item_description.toLowerCase().includes(q)
-    return matchHub && matchSearch
+      item.item_description.toLowerCase().includes(q) ||
+      (item.oem_name || '').toLowerCase().includes(q)
+    return matchHub && matchOem && matchSearch
   })
 
   const lowStockItems = useMemo(
@@ -143,11 +148,12 @@ export default function Dashboard() {
     }
   }
 
-  const saveStockDirect = async (itemCode, itemDesc, qty, cityName, hubName) => {
+  const saveStockDirect = async (itemCode, itemDesc, oemName, qty, cityName, hubName) => {
     return supabase.from('inventory').upsert(
       {
         item_code: itemCode,
         item_description: itemDesc,
+        oem_name: oemName,
         qty,
         city: cityName,
         hub_name: hubName,
@@ -210,6 +216,7 @@ export default function Dashboard() {
       request_id: req.id,
       item_code: row.item_code,
       item_description: row.item_description,
+      oem_name: row.oem_name || '',
       qty: row.qty,
       city: row.city,
       hub_name: row.hub_name,
@@ -227,8 +234,8 @@ export default function Dashboard() {
     setSuccess('')
 
     const qty = parseInt(form.qty, 10)
-    if (!form.item_code.trim() || !form.item_description.trim()) {
-      setError('Item Code, Description and Qty are required')
+    if (!form.item_code.trim() || !form.item_description.trim() || !form.oem_name.trim()) {
+      setError('Item Code, Description, OEM Name and Qty are required')
       return
     }
     if (isNaN(qty) || qty < 0) {
@@ -252,6 +259,7 @@ export default function Dashboard() {
     setSaveConfirm({
       item_code: form.item_code.trim(),
       item_description: form.item_description.trim(),
+      oem_name: form.oem_name.trim(),
       qty,
       cityName,
       hubName,
@@ -261,7 +269,7 @@ export default function Dashboard() {
 
   const performSave = async () => {
     if (!saveConfirm) return
-    const { item_code, item_description, qty, cityName, hubName, hubId } = saveConfirm
+    const { item_code, item_description, oem_name, qty, cityName, hubName, hubId } = saveConfirm
 
     setSaving(true)
     try {
@@ -275,6 +283,7 @@ export default function Dashboard() {
             {
               item_code,
               item_description,
+              oem_name,
               qty,
               city: cityName,
               hub_name: hubName,
@@ -292,6 +301,7 @@ export default function Dashboard() {
         const { error: err } = await saveStockDirect(
           item_code,
           item_description,
+          oem_name,
           qty,
           cityName,
           hubName
@@ -350,7 +360,7 @@ export default function Dashboard() {
       let fail = 0
 
       for (const row of rows) {
-        if (!row.item_code || !row.item_description || isNaN(row.qty) || row.qty < 0) {
+        if (!row.item_code || !row.item_description || !row.oem_name || isNaN(row.qty) || row.qty < 0) {
           fail++
           continue
         }
@@ -370,6 +380,7 @@ export default function Dashboard() {
         validRows.push({
           item_code: row.item_code,
           item_description: row.item_description,
+          oem_name: row.oem_name,
           qty: row.qty,
           city: cityName,
           hub_name: hubName,
@@ -400,6 +411,7 @@ export default function Dashboard() {
           const { error: err } = await saveStockDirect(
             row.item_code,
             row.item_description,
+            row.oem_name,
             row.qty,
             row.city,
             row.hub_name
@@ -477,7 +489,11 @@ export default function Dashboard() {
                   <li key={item.id}>
                     <span className="low-stock-name">
                       {item.item_description || item.item_code}
-                      <small>{item.item_code}{item.hub_name ? ` · ${item.hub_name}` : ''}</small>
+                      <small>
+                        {item.item_code}
+                        {item.oem_name ? ` · ${item.oem_name}` : ''}
+                        {item.hub_name ? ` · ${item.hub_name}` : ''}
+                      </small>
                     </span>
                     <span className="low-stock-qty">Qty: {item.qty}</span>
                   </li>
@@ -534,6 +550,10 @@ export default function Dashboard() {
               <label>
                 <span>Item Description</span>
                 <input name="item_description" value={form.item_description} onChange={handleChange} placeholder="Brake Pad Set" required />
+              </label>
+              <label>
+                <span>OEM Name (Vehicle Brand)</span>
+                <input name="oem_name" value={form.oem_name} onChange={handleChange} placeholder="MOTOVOLT" required />
               </label>
               <label>
                 <span>Qty</span>
@@ -626,12 +646,12 @@ export default function Dashboard() {
             <label htmlFor="csvUpload">{uploading ? 'Uploading…' : 'Choose Excel or CSV file to upload'}</label>
             {hubUser ? (
               <>
-                <p>Columns: <strong>Item Code, Item Description, Qty</strong> only</p>
+                <p>Columns: <strong>Item Code, Item Description, OEM Name, Qty</strong></p>
                 <p>City and HUB are taken from your login automatically.</p>
                 <p>Attach invoice first, then upload stock file. Admin must approve before stock loads.</p>
               </>
             ) : (
-              <p>Columns: Item Code, Item Description, Qty, City, HUB Name</p>
+              <p>Columns: Item Code, Item Description, OEM Name, Qty, City, HUB Name</p>
             )}
             {admin && (
               <div className="form-grid" style={{ marginTop: '1rem', textAlign: 'left' }}>
@@ -716,11 +736,17 @@ export default function Dashboard() {
           <div className="toolbar-filters">
             <input
               type="search"
-              placeholder="Search code or description…"
+              placeholder="Search code, description or OEM…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="search-input"
             />
+            <select value={filterOem} onChange={(e) => setFilterOem(e.target.value)}>
+              <option value="">All OEMs</option>
+              {allOemNames.map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
             {admin && (
               <select value={filterHub} onChange={(e) => setFilterHub(e.target.value)}>
                 <option value="">All HUBs</option>
@@ -760,6 +786,7 @@ export default function Dashboard() {
                 <tr>
                   <th>Item Code</th>
                   <th>Description</th>
+                  <th>OEM Name</th>
                   <th>Qty</th>
                   <th>City</th>
                   <th>HUB Name</th>
@@ -771,6 +798,7 @@ export default function Dashboard() {
                   <tr key={item.id}>
                     <td><code>{item.item_code}</code></td>
                     <td>{item.item_description}</td>
+                    <td><strong>{item.oem_name || '—'}</strong></td>
                     <td>
                       <span className={`qty-badge ${item.qty <= 10 ? 'low' : ''}`}>{item.qty}</span>
                     </td>
@@ -825,6 +853,7 @@ export default function Dashboard() {
             <>
               <strong>{saveConfirm.item_description}</strong>
               <span>Item Code: {saveConfirm.item_code}</span>
+              <span>OEM: {saveConfirm.oem_name}</span>
               <span>Qty: {saveConfirm.qty}</span>
               <span>HUB: {saveConfirm.hubName} · {saveConfirm.cityName}</span>
             </>

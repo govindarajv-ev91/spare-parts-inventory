@@ -11,10 +11,11 @@ function downloadBlob(content, filename, type) {
 }
 
 export function exportInventoryCsv(items) {
-  const headers = ['Item Code', 'Description', 'Qty', 'City', 'HUB Name']
+  const headers = ['Item Code', 'Description', 'OEM Name', 'Qty', 'City', 'HUB Name']
   const rows = items.map((i) => [
     i.item_code,
     i.item_description,
+    i.oem_name || '',
     i.qty,
     i.city || '',
     i.hub_name || '',
@@ -30,6 +31,7 @@ export function exportInventoryExcel(items) {
   const rows = items.map((i) => ({
     'Item Code': i.item_code,
     Description: i.item_description,
+    'OEM Name': i.oem_name || '',
     Qty: i.qty,
     City: i.city || '',
     'HUB Name': i.hub_name || '',
@@ -38,6 +40,7 @@ export function exportInventoryExcel(items) {
   ws['!cols'] = [
     { wch: 14 },
     { wch: 28 },
+    { wch: 16 },
     { wch: 8 },
     { wch: 14 },
     { wch: 14 },

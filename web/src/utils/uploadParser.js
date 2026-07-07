@@ -9,6 +9,7 @@ function mapRow(cols, idx, rowNum) {
     row: rowNum,
     item_code: String(cols[idx.code] ?? '').trim(),
     item_description: String(cols[idx.desc] ?? '').trim(),
+    oem_name: idx.oem >= 0 ? String(cols[idx.oem] ?? '').trim() : '',
     qty: parseInt(String(cols[idx.qty] ?? ''), 10),
     city: idx.city >= 0 ? String(cols[idx.city] ?? '').trim() : '',
     hub_name: idx.hub >= 0 ? String(cols[idx.hub] ?? '').trim() : '',
@@ -20,6 +21,7 @@ function parseHeaderRow(headerRow) {
   const idx = {
     code: findColumnIndex(header, ['item code', 'itemcode', 'code']),
     desc: findColumnIndex(header, ['item description', 'description']),
+    oem: findColumnIndex(header, ['oem', 'oem name', 'vehicle brand', 'brand']),
     qty: findColumnIndex(header, ['qty', 'quantity']),
     city: findColumnIndex(header, ['city']),
     hub: findColumnIndex(header, ['hub']),
@@ -69,32 +71,32 @@ export function parseExcel(buffer) {
   )
 }
 
-/** Hub users: Item Code, Description, Qty only. Admin: includes City + HUB Name. */
+/** Hub users: Item Code, Description, OEM, Qty. Admin: includes City + HUB Name. */
 export function downloadExcelTemplate({ forHub = false } = {}) {
   if (forHub) {
-    const headers = ['Item Code', 'Item Description', 'Qty']
+    const headers = ['Item Code', 'Item Description', 'OEM Name', 'Qty']
     const sampleRows = [
-      ['SP001', 'Brake Pad Set', 50],
-      ['SP002', 'Oil Filter', 120],
-      ['SP003', 'Spark Plug', 200],
+      ['SP001', 'Brake Pad Set', 'MOTOVOLT', 50],
+      ['SP002', 'Oil Filter', 'ATHER', 120],
+      ['SP003', 'Spark Plug', 'OLA', 200],
     ]
     const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
-    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 8 }]
+    ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 16 }, { wch: 8 }]
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, 'Stock Upload')
     XLSX.writeFile(wb, 'spare-parts-hub-upload-template.xlsx')
     return
   }
 
-  const headers = ['Item Code', 'Item Description', 'Qty', 'City', 'HUB Name']
+  const headers = ['Item Code', 'Item Description', 'OEM Name', 'Qty', 'City', 'HUB Name']
   const sampleRows = [
-    ['SP001', 'Brake Pad Set', 50, 'Colombo', 'Hub A'],
-    ['SP002', 'Oil Filter', 120, 'Colombo', 'Hub B'],
-    ['SP003', 'Spark Plug', 200, 'Kandy', 'Hub A'],
+    ['SP001', 'Brake Pad Set', 'MOTOVOLT', 50, 'Colombo', 'Hub A'],
+    ['SP002', 'Oil Filter', 'ATHER', 120, 'Colombo', 'Hub B'],
+    ['SP003', 'Spark Plug', 'OLA', 200, 'Kandy', 'Hub A'],
   ]
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows])
-  ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 8 }, { wch: 14 }, { wch: 14 }]
+  ws['!cols'] = [{ wch: 14 }, { wch: 28 }, { wch: 16 }, { wch: 8 }, { wch: 14 }, { wch: 14 }]
 
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Stock Upload')

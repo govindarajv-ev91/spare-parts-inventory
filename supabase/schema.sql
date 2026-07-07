@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   item_code TEXT NOT NULL,
   item_description TEXT NOT NULL,
+  oem_name TEXT NOT NULL DEFAULT '',
   qty INTEGER NOT NULL DEFAULT 0 CHECK (qty >= 0),
   city TEXT NOT NULL,
   hub_name TEXT NOT NULL,

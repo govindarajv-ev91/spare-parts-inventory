@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.stock_request_items (
   request_id UUID NOT NULL REFERENCES public.stock_requests(id) ON DELETE CASCADE,
   item_code TEXT NOT NULL,
   item_description TEXT NOT NULL,
+  oem_name TEXT NOT NULL DEFAULT '',
   qty INTEGER NOT NULL CHECK (qty >= 0),
   city TEXT NOT NULL,
   hub_name TEXT NOT NULL
@@ -89,12 +90,14 @@ BEGIN
     SELECT * FROM public.stock_request_items WHERE request_id = p_request_id
   LOOP
     INSERT INTO public.inventory (
-      item_code, item_description, qty, city, hub_name
+      item_code, item_description, oem_name, qty, city, hub_name
     ) VALUES (
-      v_item.item_code, v_item.item_description, v_item.qty, v_item.city, v_item.hub_name
+      v_item.item_code, v_item.item_description, COALESCE(v_item.oem_name, ''),
+      v_item.qty, v_item.city, v_item.hub_name
     )
     ON CONFLICT (item_code, hub_name) DO UPDATE SET
       item_description = EXCLUDED.item_description,
+      oem_name = EXCLUDED.oem_name,
       qty = public.inventory.qty + EXCLUDED.qty,
       city = EXCLUDED.city,
       updated_at = now();

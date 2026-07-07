@@ -212,6 +212,7 @@ export default function Approvals() {
                                 <tr>
                                   <th>Item Code</th>
                                   <th>Description</th>
+                                  <th>OEM Name</th>
                                   <th>Qty</th>
                                   <th>City</th>
                                   <th>HUB</th>
@@ -222,6 +223,7 @@ export default function Approvals() {
                                   <tr key={item.id}>
                                     <td><code>{item.item_code}</code></td>
                                     <td>{item.item_description}</td>
+                                    <td>{item.oem_name || '—'}</td>
                                     <td>{item.qty}</td>
                                     <td>{item.city}</td>
                                     <td>{item.hub_name}</td>
