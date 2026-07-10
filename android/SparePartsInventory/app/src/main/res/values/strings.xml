@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Spare Parts</string>
-    <string name="app_title">Vehicle Spare Parts</string>
+    <string name="app_name">EV91 Spare Parts</string>
+    <string name="app_title">Spare Parts Inventory</string>
     <string name="select_hub_subtitle">Select your HUB to view and use inventory</string>
     <string name="select_hub_hint">— Select HUB —</string>
     <string name="hub_name">HUB Name</string>

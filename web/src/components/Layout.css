@@ -30,16 +30,12 @@
 }
 
 .sidebar-logo {
-  width: 42px;
-  height: 42px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 0.9rem;
+  object-fit: cover;
+  background: #0B3D2E;
+  flex-shrink: 0;
 }
 
 .sidebar-brand strong {

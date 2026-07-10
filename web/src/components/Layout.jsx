@@ -50,10 +50,10 @@ export default function Layout() {
     <div className="dash-layout">
       <aside className="dash-sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-logo">EV</div>
+          <img src="/logo.png" alt="EV91 Spare Parts" className="sidebar-logo" />
           <div>
-            <strong>Spare Parts</strong>
-            <span>Inventory System</span>
+            <strong>EV91</strong>
+            <span>Spare Parts Inventory</span>
           </div>
         </div>
 

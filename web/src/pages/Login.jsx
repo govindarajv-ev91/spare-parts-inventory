@@ -70,7 +70,7 @@ export default function Login() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-header">
-          <span className="login-icon">🔧</span>
+          <p className="login-brand">EV91</p>
           <h1>Spare Parts Inventory</h1>
           <p>Admin or HUB login</p>
         </div>
